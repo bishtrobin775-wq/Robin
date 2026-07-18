@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive RAG Architecture Simulator</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #2563eb;
+            --secondary: #0f172a;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #334155;
+            --success: #10b981;
+            --accent: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: #64748b;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        /* Control Panel Sidebar */
+        .control-panel {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+        }
+
+        .panel-section h3 {
+            font-size: 1rem;
+            color: var(--secondary);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            resize: none;
+            font-size: 0.9rem;
+            color: var(--text);
+            background: #fdfdfd;
+        }
+
+        .input-group {
+            margin-top: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: var(--primary-light);
+        }
+
+        /* Simulation Canvas Arena */
+        .simulation-canvas {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .pipeline-steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .step-card.active {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .step-card h2 {
+            font-size: 1rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-number {
+            background: var(--primary);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        /* Viewports for Data structures */
+        .data-viewer {
+            background: #fafafa;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 160px;
+            max-height: 220px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        .chunk-box {
+            background: #fff;
+            border-left: 3px solid var(--accent);
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .vector-row {
+            font-family: monospace;
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 6px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            word-break: break-all;
+        }
+
+        .vector-db-item {
+            border-bottom: 1px solid var(--border);
+            padding: 6px 0;
+        }
+        .vector-db-item:last-child { border: none; }
+
+        .matched-chunk {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+            animation: highlight 1.5s ease;
+        }
+
+        /* Outputs Arena (Query & Gen) */
+        .execution-arena {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .output-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .output-panel h2 {
+            font-size: 1.1rem;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .prompt-preview {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            border-left: 4px solid var(--primary-light);
+            min-height: 120px;
+        }
+
+        .generation-window {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 120px;
+            font-size: 0.9rem;
+        }
+
+        @keyframes highlight {
+            0% { background: #bbf7d0; }
+            100% { background: #f0fdf4; }
+        }
+
+        .status-indicator {
+            font-size: 0.8rem;
+            color: var(--success);
+            font-weight: 600;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Retrieval-Augmented Generation (RAG) Simulator</h1>
+        <p>A hands-on environment mapping document ingestion, mathematical embedding indexing, contextual matching, and LLM output engineering.</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- Left Column: Interactive Inputs Panel -->
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>1. Knowledge Ingestion</h3>
+                <textarea id="knowledgeInput">Robin Bisht served 6 years in the Indian Army's elite Garhwal Regiment, securing All India Rank 24 in the Commission written exam during active deployment in the Srinagar Valley. Later, he co-founded Fit by Veda, aggressively scaling its wellness product sales infrastructure from ₹10,000 to over ₹12 Lakhs in monthly revenues within 24 months. He also optimized manufacturing operations, lowering corporate COGS down to 25% to extract strong margins scaling above 70%.</textarea>
+                <button onclick="processIngestion()" style="margin-top: 10px;">Ingest & Index Knowledge</button>
+                <div id="ingestStatus" class="status-indicator">✓ Vector DB Populated</div>
+            </div>
+
+            <div class="panel-section">
+                <h3>2. Runtime Prompt Injection</h3>
+                <div class="input-group">
+                    <input type="text" id="queryInput" placeholder="e.g., How much revenue did Fit by Veda generate?" value="What operational metrics did Robin achieve at Fit by Veda?">
+                    <button onclick="executeRAGPipeline()" id="queryBtn" disabled style="background: #94a3b8; cursor: not-allowed;">Execute RAG Pipeline</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: System Flow Visualizations -->
+        <div class="simulation-canvas">
+            
+            <!-- Ingestion Pipeline Stage Views -->
+            <div class="pipeline-steps">
+                
+                <!-- Chunking Module -->
+                <div class="step-card" id="step1Card">
+                    <h2><span class="step-number">1</span> Document Chunking</h2>
+                    <div class="data-viewer" id="chunkViewer">
+                        <em style="color:#94a3b8;">Awaiting ingestion execution...</em>
+                    </div>
+                </div>
+
+                <!-- Vector Embedding Engine -->
+                <div class="step-card" id="step2Card">
+                    <h2><span class="step-number">2</span> Embedding Vectors</h2>
+                    <div class="data-viewer" id="vectorViewer">
+                        <em style="color:#94a3b8;">Awaiting vector conversion...</em>
+                    </div>
+                </div>
+
+                <!-- Vector Database Index -->
+                <div class="step-card" id="step3Card">
+                    <h2><span class="step-number">3</span> Vector Database</h2>
+                    <div class="data-viewer" id="dbViewer">
+                        <em style="color:#94a3b8;">Database offline. Ingest data to spin up vector memory spaces.</em>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Execution Pipeline Stage Views -->
+            <div class="execution-arena">
+                
+                <!-- Augmentation Node -->
+                <div class="output-panel">
+                    <h2>Context-Augmented Prompt Engineering</h2>
+                    <div style="margin-bottom: 8px; font-size: 0.85rem; color:#64748b;">
+                        Dynamic mathematical similarity matching found context references. Merging context with baseline system instructions:
+                    </div>
+                    <div class="prompt-preview" id="promptPreview">Awaiting query processing pipeline to construct augmented generation prompt...</div>
+                </div>
+
+                <!-- LLM Processing Engine Node -->
+                <div class="output-panel">
+                    <h2>Generative LLM Engine Response</h2>
+                    <div style="margin-bottom: 8px; font-size: 0.85rem; color:#64748b;">
+                        Grounded, verifiable output generated strictly utilizing retrieved internal parameters:
+                    </div>
+                    <div class="generation-window" id="llmOutput">// Awaiting system execution sequence...</div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // Global simulation states
+        let databaseChunks = [];
+
+        // Simple text-to-vector simulation engine (Extracts structural character weight arrays)
+        function generateSimulatedVector(text) {
+            let hash = 0;
+            for (let i = 0; i < text.length; i++) {
+                hash = text.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const vector = [];
+            for (let i = 0; i < 4; i++) {
+                let val = ((hash >> (i * 8)) & 0xFF) / 255;
+                vector.push(val.toFixed(3));
+            }
+            return vector;
+        }
+
+        // Module Step 1: Handle text parsing, physical data structural division, and index mapping
+        function processIngestion() {
+            const rawText = document.getElementById('knowledgeInput').value.trim();
+            if(!rawText) return alert("Please populate the target text block context input before ingestion.");
+
+            // Clear visual panels
+            const chunkViewer = document.getElementById('chunkViewer');
+            const vectorViewer = document.getElementById('vectorViewer');
+            const dbViewer = document.getElementById('dbViewer');
+            
+            chunkViewer.innerHTML = '';
+            vectorViewer.innerHTML = '';
+            dbViewer.innerHTML = '';
+
+            // Clean data boundaries via sentence tokenization approximations
+            const rawChunks = rawText.match(/[^.!?]+[.!?]+/g) || [rawText];
+            databaseChunks = [];
+
+            // Process pipeline stages
+            rawChunks.forEach((chunkText, index) => {
+                let textClean = chunkText.trim();
+                if(textClean.length < 5) return;
+
+                let mockVector = generateSimulatedVector(textClean);
+                databaseChunks.push({
+                    id: index + 1,
+                    text: textClean,
+                    vector: mockVector
+                });
+
+                // Render Phase 1: Structural Division Chunks
+                let cBox = document.createElement('div');
+                cBox.className = 'chunk-box';
+                cBox.innerText = `[Chunk #${index+1}]: ${textClean}`;
+                chunkViewer.appendChild(cBox);
+
+                // Render Phase 2: Vector Mathematical Arrays
+                let vBox = document.createElement('div');
+                vBox.className = 'vector-row';
+                vBox.innerText = `C#${index+1} → [${mockVector.join(', ')}]`;
+                vectorViewer.appendChild(vBox);
+
+                // Render Phase 3: Vector Storage
+                let dbBox = document.createElement('div');
+                dbBox.className = 'vector-db-item';
+                dbBox.innerHTML = `<strong>Idx #${index+1}:</strong> <span style="font-size:0.75rem; color:#64748b;">[${mockVector.join(',')}]</span><br>${textClean.substring(0, 45)}...`;
+                dbViewer.appendChild(dbBox);
+            });
+
+            // Reset system trigger access controls
+            document.getElementById('ingestStatus').style.display = 'block';
+            const qBtn = document.getElementById('queryBtn');
+            qBtn.disabled = false;
+            qBtn.style.background = 'var(--primary)';
+            qBtn.style.cursor = 'pointer';
+
+            // Highlight Step Cards UI
+            document.getElementById('step1Card').classList.add('active');
+            document.getElementById('step2Card').classList.add('active');
+            document.getElementById('step3Card').classList.add('active');
+        }
+
+        // Pipeline Process Phase 2: Execution Match Operations
+        function executeRAGPipeline() {
+            const query = document.getElementById('queryInput').value.trim();
+            if(!query) return alert("Please supply target prompt query instructions.");
+
+            // Vectorize prompt
+            const queryVector = generateSimulatedVector(query);
+            
+            // Perform simulated vector cosine space similarity calculations
+            // Calculates intersection weight parameters matching terms across simple string intersections
+            let bestScore = -1;
+            let matchedChunk = null;
+
+            databaseChunks.forEach(chunk => {
+                let matchPoints = 0;
+                let queryWords = query.toLowerCase().replace(/[^\w\s]/g, '').split(' ');
+                let chunkWords = chunk.text.toLowerCase().replace(/[^\w\s]/g, '').split(' ');
+                
+                queryWords.forEach(word => {
+                    if(word.length > 3 && chunkWords.includes(word)) matchPoints += 2;
+                });
+
+                if(matchPoints > bestScore) {
+                    bestScore = matchPoints;
+                    matchedChunk = chunk;
+                }
+            });
+
+            // Default fallback if matching matrix yields zero intersect parameters
+            if(!matchedChunk && databaseChunks.length > 0) {
+                matchedChunk = databaseChunks[0];
+            }
+
+            // Visual indicator update on Vector database panel search hits
+            const dbViewer = document.getElementById('dbViewer');
+            dbViewer.innerHTML = '';
+            databaseChunks.forEach(chunk => {
+                let isMatch = matchedChunk && chunk.id === matchedChunk.id;
+                let dbBox = document.createElement('div');
+                dbBox.className = `vector-db-item ${isMatch ? 'matched-chunk' : ''}`;
+                dbBox.innerHTML = `${isMatch ? '<strong>🎯 MATCH HIT</strong><br>' : ''}<strong>Idx #${chunk.id}:</strong> <span style="font-size:0.75rem; color:#64748b;">[${chunk.vector.join(',')}]</span><br>${chunk.text}`;
+                dbViewer.appendChild(dbBox);
+            });
+
+            // Construct Contextual Augment Architecture Payload Text Output Layouts
+            const contextPayload = matchedChunk ? matchedChunk.text : "No validated context index records could be located within local memory boundaries.";
+            const constructedPromptText = `[SYSTEM INSTRUCTIONS]: You are an advanced, context-grounded AI agent. Answer the question strictly using the source references attached below. If the answer cannot be confidently constructed from the materials, reject processing configurations safely.\n\n[RETRIEVED DATA CONTEXT]:\n"${contextPayload}"\n\n[USER QUERY]:\n"${query}"`;
+            
+            document.getElementById('promptPreview').innerText = constructedPromptText;
+
+            // Trigger Generative LLM Engine Text Output Simulation
+            simulateLLMResponse(query, contextPayload);
+        }
+
+        // Simulate targeted text generation output strings matching retrieval source items
+        function simulateLLMResponse(query, context) {
+            const outputWindow = document.getElementById('llmOutput');
+            outputWindow.innerText = "Analyzing query payload... processing retrieval weights...\n";
+            
+            setTimeout(() => {
+                outputWindow.innerText = "Synthesizing output sentences... grounding parameters...\n\n";
+                
+                setTimeout(() => {
+                    let responseText = "";
+                    let lowerQuery = query.toLowerCase();
+
+                    if(lowerQuery.includes('revenue') || lowerQuery.includes('metric') || lowerQuery.includes('veda')) {
+                        responseText = "Based on retrieved context logs, Robin Bisht successfully built and scaled the commercial infrastructure for the wellness venture 'Fit by Veda.' Recorded execution outcomes track a scaling sequence starting from internal baselines of ₹10,000 up to exceeding ₹12 Lakhs in recurring monthly revenues inside 24 months. Operational optimizations reduced manufacturing COGS to 25%, producing net margins above 70%.";
+                    } else if(lowerQuery.includes('army') || lowerQuery.includes('rank') || lowerQuery.includes('garhwal')) {
+                        responseText = "According to historical records, Robin Bisht served for 6 years within active deployments for the Indian Army's elite Garhwal Regiment. Operational deployment details log system positioning inside the Srinagar Valley. While deployed on active service status, he completed the Commission written examination testing milestones, achieving an All India Rank (AIR) of 24.";
+                    } else {
+                        responseText = `Based on the retrieved context document ("${context.substring(0, 60)}..."), I can verify the following factual profile points to address your instruction: ${context}`;
+                    }
+
+                    outputWindow.innerText = responseText;
+                }, 800);
+            }, 500);
+        }
+    </script>
+</body>
+</html>
